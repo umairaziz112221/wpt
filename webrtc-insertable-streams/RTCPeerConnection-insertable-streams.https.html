@@ -9,9 +9,6 @@
 </head>
 <body>
 <script>
-// TODO(crbug.com/1058021): Move this test to external/wpt/webrtc/ once the
-// Insertable Streams spec is mature enough.
-
 async function testVideoFlow(t, negotiationFunction) {
   const caller = new RTCPeerConnection({encodedInsertableStreams:true});
   t.add_cleanup(() => caller.close());
@@ -47,6 +44,9 @@ async function testVideoFlow(t, negotiationFunction) {
       let numVerifiedFrames = 0;
       for (let i = 0; i < maxFramesToReceive; i++) {
         receiverReader.read().then(t.step_func(result => {
+          const computedAdditionalData = computeAdditionalData(result.value);
+          assert_true(areArrayBuffersEqual(
+              result.value.additionalData, computedAdditionalData));
           if (frameInfos[numVerifiedFrames] &&
               areFrameInfosEqual(result.value, frameInfos[numVerifiedFrames])) {
             numVerifiedFrames++;
@@ -78,6 +78,9 @@ async function testVideoFlow(t, negotiationFunction) {
       metadata: metadata,
       getMetadata() { return this.metadata; }
     });
+    const computedAdditionalData = computeAdditionalData(result.value);
+    assert_true(areArrayBuffersEqual(
+        result.value.additionalData, computedAdditionalData));
     senderWriter.write(result.value);
   }
 
@@ -319,7 +322,10 @@ promise_test(async t => {
   let numSentDeltaFrames = 0;
   // Pass frames as they come from the encoder.
   for (let i = 0; i < numFramesToSend; i++) {
-    const result = await senderReader.read()
+    const result = await senderReader.read();
+    const computedAdditionalData = computeAdditionalData(result.value);
+    assert_true(areArrayBuffersEqual(
+        result.value.additionalData, computedAdditionalData));
     if (result.value.type == 'key') {
       numSentKeyFrames++;
     } else {
@@ -388,6 +394,9 @@ promise_test(async t => {
       const receiverReader = receiverStreams.readable.getReader();
       receiverReader.read().then(t.step_func(receivedResult => {
         assert_true(areFrameInfosEqual(receivedResult.value, sentFrameInfo));
+        const computedAdditionalData = computeAdditionalData(receivedResult.value);
+        assert_true(areArrayBuffersEqual(
+            receivedResult.value.additionalData, computedAdditionalData));
         resolve();
       }));
     });
@@ -397,7 +406,10 @@ promise_test(async t => {
   await exchangeOfferAnswer(caller, callee);
 
   // Pass frames as they come from the encoder.
-  const result = await senderReader.read()
+  const result = await senderReader.read();
+  const computedAdditionalData = computeAdditionalData(result.value);
+  assert_true(areArrayBuffersEqual(
+      result.value.additionalData, computedAdditionalData));
   sentFrameInfo = {
     timestamp: result.value.timestamp,
     type: result.value.type,
