@@ -18,8 +18,15 @@ def get_browser_args(product, channel):
         return ["--install-browser", "--install-webdriver"]
     if product == "servo":
         return ["--install-browser", "--processes=12"]
-    if product == "chrome" and channel == "nightly":
-        return ["--install-browser", "--install-webdriver"]
+    if product == "chrome":
+        # Taskcluster machines do not have proper GPUs, so we need to use
+        # software rendering for webgl: https://crbug.com/1130585
+        args = ["--binary-arg=--use-gl=swiftshader-webgl"]
+        if channel == "nightly":
+            args.extend(["--install-browser", "--install-webdriver"])
+        return args
+    if product == "webkitgtk_minibrowser":
+        return ["--install-browser"]
     return []
 
 
@@ -55,7 +62,7 @@ def main(product, channel, commit_range, wpt_args):
     )
     logger.addHandler(handler)
 
-    subprocess.call(['python', './wpt', 'manifest-download'])
+    subprocess.call(['python3', './wpt', 'manifest-download'])
 
     if commit_range:
         logger.info(
@@ -81,7 +88,7 @@ def main(product, channel, commit_range, wpt_args):
     if product == "servo" and "--test-type=wdspec" in wpt_args:
         wpt_args = [item for item in wpt_args if not item.startswith("--processes")]
 
-    command = ["python", "./wpt", "run"] + wpt_args + [product]
+    command = ["python3", "./wpt", "run"] + wpt_args + [product]
 
     logger.info("Executing command: %s" % " ".join(command))
     with open("/home/test/artifacts/checkrun.md", "a") as f:

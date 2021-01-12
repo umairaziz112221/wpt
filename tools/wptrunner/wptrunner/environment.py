@@ -1,6 +1,6 @@
 import json
 import os
-import multiprocessing
+
 import signal
 import socket
 import sys
@@ -9,6 +9,7 @@ from six import iteritems
 
 from mozlog import get_default_logger, handlers, proxy
 
+from . import mpcontext
 from .wptlogging import LogLevelRewriter
 
 here = os.path.dirname(__file__)
@@ -55,7 +56,7 @@ class TestEnvironment(object):
     websockets servers"""
     def __init__(self, test_paths, testharness_timeout_multipler,
                  pause_after_test, debug_info, options, ssl_config, env_extras,
-                 enable_quic=False, serve_mojojs=False):
+                 enable_quic=False, mojojs_path=None):
         self.test_paths = test_paths
         self.server = None
         self.config_ctx = None
@@ -66,13 +67,14 @@ class TestEnvironment(object):
         self.debug_info = debug_info
         self.options = options if options is not None else {}
 
-        self.cache_manager = multiprocessing.Manager()
-        self.stash = serve.stash.StashServer()
+        mp_context = mpcontext.get_context()
+        self.cache_manager = mp_context.Manager()
+        self.stash = serve.stash.StashServer(mp_context=mp_context)
         self.env_extras = env_extras
         self.env_extras_cms = None
         self.ssl_config = ssl_config
         self.enable_quic = enable_quic
-        self.serve_mojojs = serve_mojojs
+        self.mojojs_path = mojojs_path
 
     def __enter__(self):
         self.config_ctx = self.build_config()
@@ -95,7 +97,8 @@ class TestEnvironment(object):
             self.env_extras_cms.append(cm)
 
         self.servers = serve.start(self.config,
-                                   self.get_routes())
+                                   self.get_routes(),
+                                   mp_context=mpcontext.get_context())
 
         if self.options.get("supports_debugger") and self.debug_info and self.debug_info.interactive:
             self.ignore_interrupts()
@@ -168,7 +171,8 @@ class TestEnvironment(object):
         log_filter = LogLevelRewriter(log_filter, ["error"], "warning")
         server_logger.component_filter = log_filter
 
-        server_logger = proxy.QueuedProxyLogger(server_logger)
+        server_logger = proxy.QueuedProxyLogger(server_logger,
+                                                mpcontext.get_context())
 
         try:
             # Set as the default logger for wptserve
@@ -217,9 +221,8 @@ class TestEnvironment(object):
         if "/" not in self.test_paths:
             del route_builder.mountpoint_routes["/"]
 
-        if self.serve_mojojs:
-            # TODO(Hexcles): Properly pass venv.path in.
-            route_builder.add_mount_point("/gen/", "_venv2/mojojs/gen")
+        if self.mojojs_path:
+            route_builder.add_mount_point("/gen/", self.mojojs_path)
 
         return route_builder.get_routes()
 

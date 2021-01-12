@@ -5,7 +5,7 @@ import sys
 from collections import OrderedDict
 from distutils.spawn import find_executable
 from datetime import timedelta
-from six import iterkeys, itervalues, iteritems
+from six import ensure_text, iterkeys, itervalues, iteritems
 
 from . import config
 from . import wpttest
@@ -196,6 +196,8 @@ scheme host and port.""")
     config_group.add_argument('--webdriver-arg',
                               default=[], action="append", dest="webdriver_args",
                               help="Extra argument for the WebDriver binary")
+    config_group.add_argument("--adb-binary", action="store",
+                              help="Path to adb binary to use")
     config_group.add_argument("--package-name", action="store",
                               help="Android package name to run tests against")
     config_group.add_argument("--device-serial", action="store",
@@ -284,6 +286,8 @@ scheme host and port.""")
                              help="Disable fission in Gecko.")
     gecko_group.add_argument("--stackfix-dir", dest="stackfix_dir", action="store",
                              help="Path to directory containing assertion stack fixing scripts")
+    gecko_group.add_argument("--specialpowers-path", action="store",
+                             help="Path to specialPowers extension xpi file")
     gecko_group.add_argument("--setpref", dest="extra_prefs", action='append',
                              default=[], metavar="PREF=VALUE",
                              help="Defines an extra user preference (overrides those in prefs_root)")
@@ -314,8 +318,12 @@ scheme host and port.""")
 
     servo_group = parser.add_argument_group("Chrome-specific")
     servo_group.add_argument("--enable-mojojs", action="store_true", default=False,
-                             help="Enable MojoJS for testing. Mojo bindings need to be available in "
-                             "_venv2/mojojs.")
+                             help="Enable MojoJS for testing. Note that this flag is usally "
+                             "enabled automatically by `wpt run`, if it succeeds in downloading "
+                             "the right version of mojojs.zip or if --mojojs-path is specified.")
+    servo_group.add_argument("--mojojs-path",
+                             help="Path to mojojs gen/ directory. If it is not specified, `wpt run` "
+                             "will download and extract mojojs.zip into _venv2/mojojs/gen.")
 
     sauce_group = parser.add_argument_group("Sauce Labs-specific")
     sauce_group.add_argument("--sauce-browser", dest="sauce_browser",
@@ -350,7 +358,7 @@ scheme host and port.""")
 
     taskcluster_group = parser.add_argument_group("Taskcluster-specific")
     taskcluster_group.add_argument("--github-checks-text-file",
-                                   dest="github_checks_text_file",
+                                   type=ensure_text,
                                    help="Path to GitHub checks output file")
 
     webkit_group = parser.add_argument_group("WebKit-specific")

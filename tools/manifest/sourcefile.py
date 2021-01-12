@@ -167,27 +167,27 @@ def global_variant_url(url, suffix):
 
 
 def _parse_html(f):
-    # type: (BinaryIO) -> ElementTree.ElementTree
+    # type: (BinaryIO) -> ElementTree.Element
     doc = html5lib.parse(f, treebuilder="etree", useChardet=False)
     if MYPY:
-        return cast(ElementTree.ElementTree, doc)
+        return cast(ElementTree.Element, doc)
     return doc
 
 def _parse_xml(f):
-    # type: (BinaryIO) -> ElementTree.ElementTree
+    # type: (BinaryIO) -> ElementTree.Element
     try:
         # raises ValueError with an unsupported encoding,
         # ParseError when there's an undefined entity
-        return ElementTree.parse(f)
+        return ElementTree.parse(f).getroot()
     except (ValueError, ElementTree.ParseError):
         f.seek(0)
-        return ElementTree.parse(f, XMLParser.XMLParser())  # type: ignore
+        return ElementTree.parse(f, XMLParser.XMLParser()).getroot()  # type: ignore
 
 
 class SourceFile(object):
     parsers = {u"html":_parse_html,
                u"xhtml":_parse_xml,
-               u"svg":_parse_xml}  # type: Dict[Text, Callable[[BinaryIO], ElementTree.ElementTree]]
+               u"svg":_parse_xml}  # type: Dict[Text, Callable[[BinaryIO], ElementTree.Element]]
 
     root_dir_non_test = {u"common"}
 
@@ -447,7 +447,7 @@ class SourceFile(object):
 
     @cached_property
     def root(self):
-        # type: () -> Optional[Union[ElementTree.Element, ElementTree.ElementTree]]
+        # type: () -> Optional[ElementTree.Element]
         """Return an ElementTree Element for the root node of the file if it contains
         markup, or None if it does not"""
         if not self.markup_type:
@@ -461,12 +461,7 @@ class SourceFile(object):
             except Exception:
                 return None
 
-        if hasattr(tree, "getroot"):
-            root = tree.getroot()  # type: Union[ElementTree.Element, ElementTree.ElementTree]
-        else:
-            root = tree
-
-        return root
+        return tree
 
     @cached_property
     def timeout_nodes(self):
@@ -865,8 +860,67 @@ class SourceFile(object):
     @property
     def type(self):
         # type: () -> Text
+        possible_types = self.possible_types
+        if len(possible_types) == 1:
+            return possible_types.pop()
+
         rv, _ = self.manifest_items()
         return rv
+
+    @property
+    def possible_types(self):
+        # type: () -> Set[Text]
+        """Determines the set of possible types without reading the file"""
+
+        if self.items_cache:
+            return {self.items_cache[0]}
+
+        if self.name_is_non_test:
+            return {SupportFile.item_type}
+
+        if self.name_is_manual:
+            return {ManualTest.item_type}
+
+        if self.name_is_conformance:
+            return {ConformanceCheckerTest.item_type}
+
+        if self.name_is_conformance_support:
+            return {SupportFile.item_type}
+
+        if self.name_is_webdriver:
+            return {WebDriverSpecTest.item_type}
+
+        if self.name_is_visual:
+            return {VisualTest.item_type}
+
+        if self.name_is_crashtest:
+            return {CrashTest.item_type}
+
+        if self.name_is_print_reftest:
+            return {PrintRefTest.item_type}
+
+        if self.name_is_multi_global:
+            return {TestharnessTest.item_type}
+
+        if self.name_is_worker:
+            return {TestharnessTest.item_type}
+
+        if self.name_is_window:
+            return {TestharnessTest.item_type}
+
+        if self.markup_type is None:
+            return {SupportFile.item_type}
+
+        if not self.name_is_reference:
+            return {ManualTest.item_type,
+                    TestharnessTest.item_type,
+                    RefTest.item_type,
+                    VisualTest.item_type,
+                    SupportFile.item_type}
+
+        return {TestharnessTest.item_type,
+                RefTest.item_type,
+                SupportFile.item_type}
 
     def manifest_items(self):
         # type: () -> Tuple[Text, List[ManifestItem]]
@@ -1070,6 +1124,7 @@ class SourceFile(object):
                     self.rel_path
                 )]
 
+        assert rv[0] in self.possible_types
         assert len(rv[1]) == len(set(rv[1]))
 
         self.items_cache = rv

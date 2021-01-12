@@ -10,7 +10,6 @@ from .base import (Protocol,
                    TestharnessExecutor,
                    TimedRunner,
                    strip_server)
-from ..testrunner import Stop
 from ..webdriver_server import wait_for_service
 
 webdriver = None
@@ -75,6 +74,9 @@ class ServoBaseProtocolPart(BaseProtocolPart):
 
     def set_window(self, handle):
         pass
+
+    def window_handles(self):
+        return []
 
     def load(self, url):
         pass
@@ -181,8 +183,9 @@ class ServoWebDriverTestharnessExecutor(TestharnessExecutor):
                 self.protocol.session.timeouts.script = timeout
                 self.timeout = timeout
             except IOError:
-                self.logger.error("Lost webdriver connection")
-                return Stop
+                msg = "Lost WebDriver connection"
+                self.logger.error(msg)
+                return ("INTERNAL-ERROR", msg)
 
         success, data = ServoWebDriverRun(self.logger,
                                           self.do_testharness,
@@ -273,8 +276,9 @@ class ServoWebDriverRefTestExecutor(RefTestExecutor):
                 self.protocol.session.timeouts.script = timeout
                 self.timeout = timeout
             except IOError:
-                self.logger.error("Lost webdriver connection")
-                return Stop
+                msg = "Lost webdriver connection"
+                self.logger.error(msg)
+                return ("INTERNAL-ERROR", msg)
 
         return ServoWebDriverRun(self.logger,
                                  self._screenshot,
