@@ -1,7 +1,7 @@
 # Print Reftests
 
 Print reftests are like ordinary [reftests](reftests), except that the
-output is rendered to pagninated form and then compared page-by-page
+output is rendered to paginated form and then compared page-by-page
 with the reference.
 
 Print reftests are distinguished by the string `-print` in the
@@ -16,8 +16,10 @@ directory named `print`. Examples:
 Like ordinary reftests, the reference is specified using a `<link
 rel=match>` element.
 
-The default page size for print reftests is 12.7 cm by 7.62 cm (5
-inches by 3 inches).
+The default page size
+([page box](https://drafts.csswg.org/css-page-3/#page-model)) for
+print reftests is 12.7 cm by 7.62 cm (5 inches by 3 inches) with a
+default margin of 12.7 mm (0.5 inches) on all sides.
 
 All the features of ordinary reftests also work with print reftests
 including [fuzzy matching](reftests.html#fuzzy-matching). Any fuzzy
@@ -38,7 +40,7 @@ specifier-item = <int> | <int>? "-" <int>?
 ```
 
 For example to specify rendering pages 1 and 2, 4, 6 and 7, and 9 and
-10 of a 10 page page document one could write:
+10 of a 10-page document one could write:
 
 ```
 <meta name=reftest-pages content="-2,4,6,7,9-">

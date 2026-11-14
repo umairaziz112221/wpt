@@ -28,7 +28,7 @@ var validProperties = {
   backgroundColor: 'rgb(10, 20, 30)',
   backgroundImage: 'linear-gradient(rgb(0, 0, 0), rgb(255, 255, 255))',
   backgroundOrigin: 'border-box',
-  backgroundPosition: 'left 10px top 20px',
+  backgroundPosition: '10px 20px',
   backgroundRepeat: 'no-repeat',
   backgroundSize: '10px 20px',
   border: '40px dotted rgb(10, 20, 30)',
@@ -52,10 +52,20 @@ var validProperties = {
   textTransform: 'capitalize',
   textUnderlinePosition: 'under',
   verticalAlign: '12%',
-  wordSpacing: '12px'
+  wordSpacing: '12px',
+  animationName: 'foo',
+  animationDuration: '1s',
+  animationTimingFunction: 'ease-in-out',
+  animationDelay: '2s',
+  animationIterationCount: '3',
+  animationDirection: 'alternate',
+  animationFillMode: 'forwards',
+  animationPlayState: 'paused',
+  animationComposition: 'add'
 };
 
 var invalidProperties = {
+  position: 'absolute',
   transition: 'transform 1s',
   transform: 'rotate(45deg)',
   wordBreak: 'break-all'

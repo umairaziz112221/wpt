@@ -58,8 +58,8 @@ function reportload() {
             assert_equals( iframe.contentWindow.history.state, '' );
         }, 'history.state should update after a state is pushed');
         histlength = history.length;
+        iframe.contentWindow.addEventListener("popstate", tests2, {once: true});
         history.back();
-        setTimeout(tests2,50); //.back is queued to end of thread
     }
     function tests2() {
         test(function () {
@@ -68,18 +68,19 @@ function reportload() {
         test(function () {
             assert_equals( iframe.contentWindow.location.hash.replace(/^#/,''), 'test' );
         }, 'traversing history must traverse pushed states');
+        iframe.contentWindow.addEventListener("hashchange", tests3, {once: true});
         history.go(-1);
-        setTimeout(tests3,50); //.go is queued to end of thread
     }
     function tests3() {
         test(function () {
             assert_equals( iframe.contentWindow.location.hash.replace(/^#/,''), '', '(this could cause other failures later on)' );
         }, 'traversing history must also traverse hash changes');
+
+        iframe.contentWindow.addEventListener("hashchange", tests4, {once: true});
         //Safari 5.0.3 fails here - it navigates *this* document to the *iframe's* location, instead of just navigating the iframe
         history.go(2);
-        setTimeout(tests4,50); //.go is queued to end of thread
     }
-    function tests4() {
+    async function tests4() {
         test(function () {
             //Firefox 4 beta 11 has a messed up error object, which does not have the right error type or .SECURITY_ERR property
             assert_throws_dom('SECURITY_ERR',function () { history.pushState('','','//exa mple'); });
@@ -96,12 +97,18 @@ function reportload() {
         test(function () {
             assert_throws_dom('SECURITY_ERR', iframe.contentWindow.DOMException, function () { iframe.contentWindow.history.pushState('','','http://www.example.com/'); });
         }, 'security errors are expected to be thrown in the context of the document that owns the history object');
+        let hashchange =
+          new Promise(function (resolve) {
+            iframe.contentWindow.addEventListener("hashchange", resolve, {once: true});
+          });
+
         test(function () {
             iframe.contentWindow.location.hash = 'test2';
             assert_equals( iframe.contentWindow.location.hash.replace(/^#/,''), 'test2', 'location.hash did not change when told to' );
         }, 'location.hash must be allowed to change (part 1)');
+        await hashchange;
         history.go(-1);
-        setTimeout(tests5,50); //.go is queued to end of thread
+        iframe.contentWindow.addEventListener("hashchange", tests5, {once: true});
     }
     function tests5() {
         test(function () {
@@ -122,26 +129,23 @@ function reportload() {
             iframe.contentWindow.history.pushState('','','#test3');
             assert_equals( iframe.contentWindow.location.hash.replace(/^#/,''), 'test3' );
         }, 'pushState must be able to set location.hash');
-        //begin setup for "remove any tasks queued by the history traversal task source"
         iframe.contentWindow.location.hash = '#test4';
-        iframe.contentWindow.history.go(-1); //must be queued
+        iframe.contentWindow.history.go(-1);
         try {
-            //must remove the queued navigation in the same browsing context
+            // Queued a go to test3, the pushState is inserted after test3
             iframe.contentWindow.history.pushState('','');
         } catch(unsuperr) {}
-        //allow the browser to mistakenly run the .go if it is going to
-        //do not put two .go commands in the same thread, in case the browser mistakenly calculates the history position when
-        //calling .go instead of when executing the traversal task - that could give a false PASS in the next test otherwise
         setTimeout(tests7,50);
     }
     function tests7() {
-        iframe.contentWindow.history.go(-1); //must be queued, but should not be removed this time
-        setTimeout(tests8,50); //.go is queued to end of thread
+        // Standing at test3, go(-1) should take us to 'test'
+        iframe.contentWindow.history.go(-1);
+        iframe.contentWindow.addEventListener("popstate", tests8, {once: true});
     }
     function tests8() {
         test(function () {
-            assert_equals( iframe.contentWindow.location.hash.replace(/^#/,''), 'test4' );
-        }, 'pushState must remove any tasks queued by the history traversal task source');
+            assert_equals( iframe.contentWindow.location.hash.replace(/^#/,''), 'test' );
+        }, 'pushState must not remove tasks queued by the history traversal task source');
         //end "remove any tasks queued by the history traversal task source"
         window.addEventListener('hashchange',function () { hashchng = true; },false);
         try {
@@ -220,7 +224,7 @@ function reportload() {
             assert_equals( iframe.contentWindow.history.state && iframe.contentWindow.history.state.strdata, 'string data' );
         }, 'history.state should also reference a clone of the original object');
         test(function () {
-            assert_false( cloneobj === iframe.contentWindow.history.state );
+            assert_not_equals( cloneobj, iframe.contentWindow.history.state );
         }, 'history.state should be a clone of the original object, not a reference to it');
         /*
         behaviour is not defined per spec, and no known implementations do this
@@ -229,7 +233,7 @@ function reportload() {
         }, 'pushState MIGHT set the document title');
         */
         history.go(-1);
-        setTimeout(tests10,50); //.go is queued to end of thread
+        iframe.contentWindow.addEventListener("popstate", tests10, {once: true});
     }
     function tests10() {
         var eventtime = setTimeout(function () { tests11(false); },500); //should be cleared by the event handler long before it has a chance to fire
@@ -265,16 +269,16 @@ function reportload() {
             assert_equals( ev.state.looped, ev.state );
         }, 'state data should cope with circular object references');
         test(function () {
-            assert_false( cloneobj === ev.state );
+            assert_not_equals( cloneobj, ev.state );
         }, 'state data should be a clone of the original object, not a reference to it');
         test(function () {
             assert_equals( iframe.contentWindow.history.state && iframe.contentWindow.history.state.strdata, 'string data' );
         }, 'history.state should also reference a clone of the original object (2)');
         test(function () {
-            assert_false( cloneobj === iframe.contentWindow.history.state );
+            assert_not_equals( cloneobj, iframe.contentWindow.history.state );
         }, 'history.state should be a clone of the original object, not a reference to it (2)');
         test(function () {
-            assert_true( iframe.contentWindow.history.state === ev.state );
+            assert_equals( iframe.contentWindow.history.state, ev.state );
         }, 'history.state should be identical to the object passed to the event handler unless history.state is updated');
         try {
             iframe.contentWindow.persistval = true;

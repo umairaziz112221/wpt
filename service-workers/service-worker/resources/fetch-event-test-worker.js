@@ -129,10 +129,9 @@ function handleIntegrity(event) {
 }
 
 function handleRequestBody(event) {
-  event.respondWith(event.request.text()
-    .then(text => {
-        return new Response(text);
-      }));
+  event.respondWith(event.request.text().then(text => {
+    return new Response(text);
+  }));
 }
 
 function handleKeepalive(event) {
@@ -154,6 +153,54 @@ function handleIsHistoryNavigation(event) {
     `isHistoryNavigation = ${request.isHistoryNavigation}`;
   event.respondWith(new Response(body));
 }
+
+function handleUseAndIgnore(event) {
+  const request = event.request;
+  request.text();
+  return;
+}
+
+function handleCloneAndIgnore(event) {
+  const request = event.request;
+  request.clone().text().then(t => {
+    if (self.port)
+      self.port.postMessage(t);
+  });
+  return;
+}
+
+function handleCloneAfterIgnore(event) {
+  const request = event.request;
+  setTimeout(() => {
+    try {
+      request.clone();
+      if (self.port)
+        self.port.postMessage('no error');
+    } catch (e) {
+      if (self.port)
+        self.port.postMessage(e.name);
+    }
+  }, 0);
+  return;
+}
+
+var handle_status_count = 0;
+function handleStatus(event) {
+  handle_status_count++;
+  event.respondWith(async function() {
+    const res = await fetch(event.request);
+    const text = await res.text();
+    return new Response(`${text}. Request was sent ${handle_status_count} times.`,
+      {"status": new URL(event.request.url).searchParams.get("status")});
+  }());
+}
+
+self.addEventListener('message', function(event) {
+  if (event.data.port) {
+    self.port = event.data.port;
+    self.port.postMessage("ok");
+  }
+});
 
 self.addEventListener('fetch', function(event) {
     var url = event.request.url;
@@ -180,6 +227,10 @@ self.addEventListener('fetch', function(event) {
       { pattern: '?keepalive', fn: handleKeepalive },
       { pattern: '?isReloadNavigation', fn: handleIsReloadNavigation },
       { pattern: '?isHistoryNavigation', fn: handleIsHistoryNavigation },
+      { pattern: '?use-and-ignore', fn: handleUseAndIgnore },
+      { pattern: '?clone-and-ignore', fn: handleCloneAndIgnore },
+      { pattern: '?clone-after-ignore', fn: handleCloneAfterIgnore },
+      { pattern: '?status', fn: handleStatus },
     ];
 
     var handler = null;

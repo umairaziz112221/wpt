@@ -1,12 +1,11 @@
+# mypy: allow-untyped-defs
+
 import json
 import os
 import re
-from collections import OrderedDict
 from copy import deepcopy
 
-import six
 import yaml
-from six import iteritems
 
 here = os.path.dirname(__file__)
 
@@ -27,7 +26,7 @@ def load_task_file(path):
 
 
 def update_recursive(data, update_data):
-    for key, value in iteritems(update_data):
+    for key, value in update_data.items():
         if key not in data:
             data[key] = value
         else:
@@ -67,6 +66,10 @@ def resolve_chunks(task_data):
         return [task_data]
     rv = []
     total_chunks = task_data["chunks"]
+    if "chunks-override" in task_data:
+        override = task_data["chunks-override"].get(task_data["vars"]["test-type"])
+        if override is not None:
+            total_chunks = override
     for i in range(1, total_chunks + 1):
         chunk_data = deepcopy(task_data)
         chunk_data["chunks"] = {"id": i,
@@ -94,13 +97,13 @@ def replace_vars(input_string, variables):
 
 
 def sub_variables(data, variables):
-    if isinstance(data, six.string_types):
+    if isinstance(data, str):
         return replace_vars(data, variables)
     if isinstance(data, list):
         return [sub_variables(item, variables) for item in data]
     if isinstance(data, dict):
         return {key: sub_variables(value, variables)
-                for key, value in iteritems(data)}
+                for key, value in data.items()}
     return data
 
 
@@ -117,7 +120,7 @@ def expand_maps(task):
         return [task]
 
     map_data = task["$map"]
-    if set(map_data.keys()) != set(["for", "do"]):
+    if set(map_data.keys()) != {"for", "do"}:
         raise ValueError("$map objects must have exactly two properties named 'for' "
                          "and 'do' (got %s)" % ("no properties" if not map_data.keys()
                                                 else ", ". join(map_data.keys())))
@@ -138,7 +141,7 @@ def expand_maps(task):
 
 
 def load_tasks(tasks_data):
-    map_resolved_tasks = OrderedDict()
+    map_resolved_tasks = {}
     tasks = []
 
     for task in tasks_data["tasks"]:
@@ -154,13 +157,13 @@ def load_tasks(tasks_data):
                 raise ValueError("Got duplicate task name %s" % new_name)
             map_resolved_tasks[new_name] = substitute_variables(data)
 
-    for task_default_name, data in iteritems(map_resolved_tasks):
+    for task_default_name, data in map_resolved_tasks.items():
         task = resolve_use(data, tasks_data["components"])
         task = resolve_name(task, task_default_name)
         tasks.extend(resolve_chunks(task))
 
     tasks = [substitute_variables(task_data) for task_data in tasks]
-    return OrderedDict([(t["name"], t) for t in tasks])
+    return {t["name"]: t for t in tasks}
 
 
 def load_tasks_from_path(path):

@@ -4,18 +4,36 @@
 <script src="/resources/testharnessreport.js"></script>
 <script>
 var removedInterfaces = [
+  "SVGAltGlyphElement",
+  "SVGAltGlyphDefElement",
+  "SVGAltGlyphItemElement",
   "SVGAnimatedPathData",
   "SVGColor",
+  "SVGColorProfileElement",
+  "SVGColorProfileRule",
+  "SVGCursorElement",
   "SVGDocument",
   "SVGElementInstanceList",
   "SVGExternalResourcesRequired",
+  "SVGFontElement",
+  "SVGFontFaceElement",
+  "SVGFontFaceSrcElement",
+  "SVGFontFaceUriElement",
+  "SVGFontFaceFormatElement",
+  "SVGGlyphElement",
+  "SVGGlyphRefElement",
+  "SVGHKernElement",
   "SVGICCColor",
   "SVGLangSpace",
   "SVGLocatable",
+  "SVGMissingGlyphElement",
   "SVGTransformable",
+  "SVGTRefElement",
   "SVGPaint",
   "SVGPathSeg",
   "SVGStylable",
+  "SVGUnknownElement",
+  "SVGVKernElement",
   "SVGViewSpec",
   "SVGZoomEvent"
 ]
@@ -48,9 +66,14 @@ var removedMembers = {
     "xmllang",
     "xmlspace"
   ],
+  "SVGAElement": [
+    "text"
+  ],
   "SVGGraphicsElement": [
+    "farthestViewportElement",
     "getTransformToElement",
     "hasExtension",
+    "nearestViewportElement",
     "requiredFeatures"
   ],
   "SVGSVGElement": [
@@ -59,6 +82,8 @@ var removedMembers = {
     "pixelUnitToMillimeterY",
     "screenPixelToMillimeterX",
     "screenPixelToMillimeterY",
+    "setCurrentScale",
+    "setCurrentTranslate",
     "useCurrentView",
     "viewport"
   ],

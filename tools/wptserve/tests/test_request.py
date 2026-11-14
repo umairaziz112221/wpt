@@ -1,5 +1,4 @@
-import mock
-from six import binary_type
+from unittest import mock
 
 from wptserve.request import Request, RequestHeaders, MultiDict
 
@@ -29,7 +28,7 @@ class MockHTTPMessage(dict):
 
     def getallmatchingheaders(self, key):
         values = dict.__getitem__(self, key.lower())
-        return ["{}: {}\n".format(key, v) for v in values]
+        return [f"{key}: {v}\n" for v in values]
 
 
 def test_request_headers_get():
@@ -49,14 +48,14 @@ def test_request_headers_encoding():
         'x-bar': ['bar1', 'bar2'],
     })
     headers = RequestHeaders(raw_headers)
-    assert isinstance(headers['x-foo'], binary_type)
-    assert isinstance(headers['x-bar'], binary_type)
-    assert isinstance(headers.get_list('x-bar')[0], binary_type)
+    assert isinstance(headers['x-foo'], bytes)
+    assert isinstance(headers['x-bar'], bytes)
+    assert isinstance(headers.get_list('x-bar')[0], bytes)
 
 
 def test_request_url_from_server_address():
     request_handler = mock.Mock()
-    request_handler.server.scheme = 'http'
+    request_handler.scheme = 'http'
     request_handler.server.server_address = ('localhost', '8000')
     request_handler.path = '/demo'
     request_handler.headers = MockHTTPMessage()
@@ -68,7 +67,7 @@ def test_request_url_from_server_address():
 
 def test_request_url_from_host_header():
     request_handler = mock.Mock()
-    request_handler.server.scheme = 'http'
+    request_handler.scheme = 'http'
     request_handler.server.server_address = ('localhost', '8000')
     request_handler.path = '/demo'
     request_handler.headers = MockHTTPMessage({'host': ['web-platform.test:8001']})

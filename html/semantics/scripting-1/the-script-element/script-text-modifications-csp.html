@@ -1,0 +1,66 @@
+<!doctype html>
+<head>
+<meta charset=utf-8>
+<title>Modify HTMLScriptElement's text after preparation to violate CSP</title>
+<link rel=help href="https://html.spec.whatwg.org/multipage/scripting.html#prepare-the-script-element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<meta http-equiv="content-security-policy" content="script-src
+  'nonce-allow'
+  'sha256-2+5xh6b9uuIi4GaJtmHWtgR2nwRXJpBtMY4nVaOBpfc='
+">
+<!-- The hash is that of the original content of `script0`. -->
+
+<script nonce="allow">
+window.t = async_test("Modify inline script element's text " +
+                   "after prepare-a-script before evaluation (CSP)");
+
+const updatedText =
+  't.unreached_func("CSP check was done against the original text but the updated text was evaluated")();';
+
+const stylesheetURL = `resources/controlled-stylesheet.py?token=${token()}`;
+
+function changeScriptText() {
+  document.querySelector('#script0').textContent = updatedText;
+}
+
+// Allow the parser to prepare `script0` while the stylesheet blocks execution.
+// Use the global timer: `t.step_timeout()` skips its callback after the test
+// finishes, but the stylesheet must still be released so document loading can
+// finish even if the test has already failed.
+step_timeout(() => {
+  // Record mutation failures without preventing the stylesheet release below.
+  t.step(changeScriptText);
+  // Use XHR rather than `fetch()`, which Firefox can defer until blocking CSS
+  // finishes. Firefox explicitly exempts XHR to prevent deadlocks with CSS/JS
+  // responses waiting for an XHR signal:
+  // https://github.com/mozilla-firefox/firefox/blob/6399208a6b0ab89af6a834648e0330367168ccd1/dom/xhr/XMLHttpRequestMainThread.cpp#L2824-L2828
+  const request = new XMLHttpRequest();
+  request.open("POST", stylesheetURL);
+  request.send();
+}, 500);
+document.write(`<link rel="stylesheet" href="${stylesheetURL}">`);
+</script>
+
+<!-- The pending stylesheet blocks this parser-inserted script's execution,
+allowing the mutation timer to change its text after preparation. -->
+<script id="script0">
+t.step(() => {
+    // When this is evaluated after the stylesheet is loaded,
+    // script0's textContent is modified by the async script above,
+    // but the evaluated script is still the original script here,
+    // not what is overwritten, because "child text content" is taken in
+    // #prepare-a-script and passed to "creating a classic script".
+    var s = document.getElementById('script0');
+    assert_equals(s.textContent, updatedText,
+                  "<script>'s textContent should be already modified");
+    t.done();
+  });
+</script>
+<script nonce="allow">
+// If this makes the test fail, it indicates `script0` (the original or updated
+// text) was not evaluated, probably blocked by CSP that was checked against the
+// updated text.
+t.unreached_func("CSP check was done against the updated text")();
+</script>

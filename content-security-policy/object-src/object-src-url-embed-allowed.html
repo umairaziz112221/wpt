@@ -8,13 +8,13 @@
       Content-Security-Policy:
         object-src 'self';
         script-src 'self' 'unsafe-inline';
-        report-uri ../support/report.py?op=put&reportID={{$id}}
+        report-uri /reporting/resources/report.py?op=put&reportID={{$id}}
     -->
 </head>
 
 <body>
   <embed height="40" width="40" type="image/png"
-         src="/content-security-policy/support/pass.png"></embed>
+         src="/content-security-policy/support/pass.png">
   <!--
     We rely on the report because we can't rely on the onload event for
     "allowed" tests as it is not fired for object and embed

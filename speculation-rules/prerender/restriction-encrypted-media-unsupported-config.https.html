@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<title>Access to the Encrypted Media API is deferred with unsupported config
+</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/html/browsers/browsing-the-web/remote-context-helper/resources/remote-context-helper.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+setup(() => assertSpeculationRulesIsSupported('prerender'));
+
+promise_test(async t => {
+  const rcHelper = new PrerenderingRemoteContextHelper();
+  const referrerRC =
+      await rcHelper.addWindow(undefined, { features: 'noopener' });
+  const prerenderedRC = await referrerRC.addPrerender();
+
+  await prerenderedRC.executeScript(() => {
+    window.eventsSeen = [];
+    const addEvent = event => {
+      window.eventsSeen.push({ event, prerendering: document.prerendering });
+    };
+
+    const fakeConfig = [{
+      initDataTypes: ['fakeidt'],
+      audioCapabilities: [{ contentType: 'audio/fake; codecs="mp4a.40.2"' }],
+    }];
+
+    addEvent('started waiting navigator.requestMediaKeySystemAccess');
+    document.addEventListener('prerenderingchange', () => {
+      addEvent('prerendering change');
+    });
+
+    window.requestSettled =
+        navigator.requestMediaKeySystemAccess('org.w3.clearkey', fakeConfig)
+            .then(
+                () => {
+                  addEvent(
+                      'finished waiting navigator.requestMediaKeySystemAccess');
+                },
+                error => {
+                  if (error instanceof Error) {
+                    error = error.name;
+                  }
+                  addEvent(
+                      `navigator.requestMediaKeySystemAccess rejected: ${error}`);
+                });
+  });
+
+  // Give the implementation a chance to fail in case it rejects a promise
+  // without waiting for activation.
+  await new Promise(resolve => t.step_timeout(resolve, 20));
+
+  await referrerRC.navigateExpectingPrerenderingActivation(prerenderedRC);
+  await prerenderedRC.executeScript(() => window.requestSettled);
+  const result = await prerenderedRC.executeScript(() => window.eventsSeen);
+
+  const expected = [
+    {
+      event: 'started waiting navigator.requestMediaKeySystemAccess',
+      prerendering: true
+    },
+    {
+      event: 'prerendering change',
+      prerendering: false
+    },
+    {
+      event: 'navigator.requestMediaKeySystemAccess rejected: ' +
+             'NotSupportedError',
+      prerendering: false
+    }
+  ];
+  assert_equals(result.length, expected.length);
+  for (let i = 0; i < result.length; i++) {
+    assert_equals(result[i].event, expected[i].event, `event${i}`);
+    assert_equals(result[i].prerendering, expected[i].prerendering,
+      `prerendering${i}`);
+  }
+}, `the access to the Encrypted Media API should be deferred with the
+    unsupported configurations until the prerendered page is activated`);
+</script>

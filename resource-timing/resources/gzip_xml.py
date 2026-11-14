@@ -1,7 +1,7 @@
 import gzip as gzip_module
 import os
 
-from six import BytesIO
+from io import BytesIO
 
 from wptserve.utils import isomorphic_decode
 
@@ -19,5 +19,8 @@ def main(request, response):
     headers = [(b"Content-type", b"text/plain"),
                (b"Content-Encoding", b"gzip"),
                (b"Content-Length", len(output))]
+
+    if b'allow_origin' in request.GET:
+      headers.append((b'access-control-allow-origin', request.GET.first(b'allow_origin')))
 
     return headers, output

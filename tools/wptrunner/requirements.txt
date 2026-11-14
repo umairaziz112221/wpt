@@ -1,9 +1,13 @@
 html5lib==1.1
-mozinfo==1.2.1  # https://bugzilla.mozilla.org/show_bug.cgi?id=1621226
-mozlog==6.1
-mozdebug==0.2
-# Pillow 7 requires Python 3
-pillow==6.2.2  # pyup: <7.0
-urllib3[secure]==1.25.10
-requests==2.24.0
-six==1.15.0
+mozdebug==0.4.0
+mozinfo==1.2.3  # https://bugzilla.mozilla.org/show_bug.cgi?id=1621226
+mozlog==8.1.0
+mozprocess==1.4.0
+mozshellutil==1.0.0
+packaging==26.2
+pillow==11.3.0; python_version == '3.9'
+pillow==12.1.1; python_version >= '3.10'
+requests==2.32.3
+types-requests==2.32.0.20241016
+urllib3==2.6.3
+aioquic==1.2.0

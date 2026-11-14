@@ -1,5 +1,6 @@
+# mypy: allow-untyped-defs
+
 import abc
-from six import iteritems, iterkeys, itervalues
 
 from ..node import NodeVisitor
 from ..parser import parse
@@ -41,7 +42,7 @@ class Compiler(NodeVisitor):
         return self.data_cls_getter(None, None)(node, **kwargs)
 
     def visit_DataNode(self, node):
-        if node != self.tree:
+        if node is not self.tree:
             output_parent = self.output_node
             self.output_node = self.data_cls_getter(self.output_node, node)(node, **self._kwargs)
         else:
@@ -102,6 +103,9 @@ class Compiler(NodeVisitor):
             return data
         return value
 
+    def visit_AtomExprNode(self, node):
+        return node.data
+
     def visit_IndexNode(self, node):
         assert len(node.children) == 1
         return self.visit(node.children[0])
@@ -123,7 +127,7 @@ class Compiler(NodeVisitor):
         pass
 
 
-class ManifestItem(object):
+class ManifestItem:
     def __init__(self, node, **kwargs):
         self.parent = None
         self.node = node
@@ -131,7 +135,7 @@ class ManifestItem(object):
         self._data = {}
 
     def __repr__(self):
-        return "<%s %s>" % (self.__class__, self.node.data)
+        return f"<{self.__class__} {self.node.data}>"
 
     def __str__(self):
         rv = [repr(self)]
@@ -187,22 +191,19 @@ class ManifestItem(object):
     def _flatten(self):
         rv = {}
         for node in [self, self.root]:
-            for name, value in iteritems(node._data):
+            for name, value in node._data.items():
                 if name not in rv:
                     rv[name] = value
         return rv
 
     def iteritems(self):
-        for item in iteritems(self._flatten()):
-            yield item
+        yield from self._flatten().items()
 
     def iterkeys(self):
-        for item in iterkeys(self._flatten()):
-            yield item
+        yield from self._flatten().keys()
 
     def itervalues(self):
-        for item in itervalues(self._flatten()):
-            yield item
+        yield from self._flatten().values()
 
     def append(self, child):
         child.parent = self

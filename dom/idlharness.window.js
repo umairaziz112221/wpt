@@ -11,9 +11,10 @@
 'use strict';
 
 idl_test(
-  ['dom'],
+  ['dom', 'fullscreen'],
   ['html'],
-  idl_array => {
+  async idl_array => {
+    idl_array.add_untested_idls((await fetch_spec('document-load-promises.tentative')).idl);
     self.xmlDoc = document.implementation.createDocument(null, '', null);
     self.detachedRange = document.createRange();
     detachedRange.detach();
@@ -46,6 +47,7 @@ idl_test(
       XPathExpression: ['document.createExpression("//*")'],
       XPathNSResolver: ['document.createNSResolver(document.body)'],
       XPathResult: ['document.evaluate("//*", document.body)'],
+      XSLTProcessor: ['new XSLTProcessor()'],
     });
   }
 );

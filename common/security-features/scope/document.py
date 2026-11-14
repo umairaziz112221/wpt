@@ -2,8 +2,8 @@ import os, sys, json
 
 from wptserve.utils import isomorphic_decode, isomorphic_encode
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(isomorphic_decode(__file__))))
-import util
+import importlib
+util = importlib.import_module("common.security-features.scope.util")
 
 def main(request, response):
   policyDeliveries = json.loads(request.GET.first(b"policyDeliveries", b"[]"))
@@ -26,7 +26,8 @@ def main(request, response):
 
   handler = lambda: util.get_template(u"document.html.template") % ({
       u"meta": meta,
-      u"error": error
+      u"error": error,
+      u"scriptOrigin": request.url_parts.scheme + u'://' + request.url_parts.hostname + u':' + str(request.url_parts.port)
   })
   util.respond(
       request,

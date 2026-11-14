@@ -3,7 +3,6 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="resources/webxr_util.js"></script>
 <script src="resources/webxr_test_constants.js"></script>
-<canvas id="webgl-canvas"></canvas>
 
 <script>
 let testName = "Ensures that the XRSession's visibilityState is correctly "
@@ -62,7 +61,7 @@ let testFunction = function(session, fakeDeviceController, t) {
 
   function onSessionVisibilityChangeInvalid(event) {
     t.step( () => {
-      assert_not_reached("Should not fire visibilitychange events for the same state");
+      assert_unreached("Should not fire visibilitychange events for the same state");
     });
   }
 

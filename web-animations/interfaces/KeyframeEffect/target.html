@@ -253,13 +253,31 @@ for (const pseudo of [
   'before',
   ':abc',
   '::abc',
-  '::placeholder',
 ]) {
   test(t => {
     const effect = new KeyframeEffect(null, gKeyFrames, 100 * MS_PER_SEC);
     assert_throws_dom("SyntaxError", () => effect.pseudoElement = pseudo );
   }, `Changing pseudoElement to a non-null invalid pseudo-selector ` +
      `'${pseudo}' throws a SyntaxError`);
+}
+
+test(t => {
+  const effect = new KeyframeEffect(null, gKeyFrames, 100 * MS_PER_SEC);
+  effect.pseudoElement = '::placeHOLDER';
+  assert_equals(effect.pseudoElement, '::placeholder');
+}, `Changing pseudoElement to ::placeHOLDER works`);
+
+for (const [input, expected] of [
+  ['::view-transition-old(camelCase)', '::view-transition-old(camelCase)'],
+  ['::VIEW-TRANSITION-OLD(camelCase)', '::view-transition-old(camelCase)'],
+  ['::highlight(camelCase)', '::highlight(camelCase)'],
+  ['::HIGHLIGHT(camelCase)', '::highlight(camelCase)'],
+]) {
+  test(t => {
+    const effect = new KeyframeEffect(null, gKeyFrames, 100 * MS_PER_SEC);
+    effect.pseudoElement = input;
+    assert_equals(effect.pseudoElement, expected);
+  }, `Changing pseudoElement to ${input} preserves custom-ident case as ${expected}`);
 }
 
 </script>

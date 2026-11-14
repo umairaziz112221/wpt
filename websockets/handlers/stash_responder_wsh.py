@@ -1,8 +1,7 @@
 #!/usr/bin/python
-from six.moves import urllib
 import json
-from mod_pywebsocket import common, msgutil, util
-from mod_pywebsocket.handshake import hybi
+import urllib
+from pywebsocket3 import msgutil
 from wptserve import stash
 
 address, authkey = stash.load_env_config()
@@ -33,6 +32,11 @@ def web_socket_transfer_data(request):
             elif action == "purge":
              value = stash.take(key=key, path=path)
              response_data = json.dumps({"status": "success", "result": value})
+            elif action == "check-scheme":
+              if request.is_https():
+                  stash.take(key=key, path=path)
+                  stash.put(key=key, value="upgraded", path=path)
+              response_data = json.dumps({"status": "success", "result": key})
             elif action == "take":
               value = stash.take(key=key, path=path)
               if value is None:

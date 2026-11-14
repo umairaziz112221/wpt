@@ -1,7 +1,7 @@
+# mypy: allow-untyped-defs
+
 import os
 import sys
-
-from six import itervalues
 
 from .metadata import MetadataUpdateRunner
 from .sync import SyncFromUpstreamRunner
@@ -25,8 +25,8 @@ class LoadConfig(Step):
                       "path": state.kwargs["sync_path"]}
 
         state.paths = state.kwargs["test_paths"]
-        state.tests_path = state.paths["/"]["tests_path"]
-        state.metadata_path = state.paths["/"]["metadata_path"]
+        state.tests_path = state.paths["/"].tests_path
+        state.metadata_path = state.paths["/"].metadata_path
 
         assert os.path.isabs(state.tests_path)
 
@@ -108,12 +108,12 @@ class RemoveObsolete(Step):
             return
 
         paths = state.kwargs["test_paths"]
-        state.tests_path = state.paths["/"]["tests_path"]
-        state.metadata_path = state.paths["/"]["metadata_path"]
+        state.tests_path = state.paths["/"].tests_path
+        state.metadata_path = state.paths["/"].metadata_path
 
-        for url_paths in itervalues(paths):
-            tests_path = url_paths["tests_path"]
-            metadata_path = url_paths["metadata_path"]
+        for url_paths in paths.values():
+            tests_path = url_paths.tests_path
+            metadata_path = url_paths.metadata_path
             for dirpath, dirnames, filenames in os.walk(metadata_path):
                 for filename in filenames:
                     if filename == "__dir__.ini":
@@ -135,7 +135,7 @@ class UpdateRunner(StepRunner):
              UpdateMetadata]
 
 
-class WPTUpdate(object):
+class WPTUpdate:
     def __init__(self, logger, runner_cls=UpdateRunner, **kwargs):
         """Object that controls the running of a whole wptupdate.
 
@@ -144,7 +144,7 @@ class WPTUpdate(object):
         :param kwargs: Command line arguments
         """
         self.runner_cls = runner_cls
-        self.serve_root = kwargs["test_paths"]["/"]["tests_path"]
+        self.serve_root = kwargs["test_paths"]["/"].tests_path
 
         if not kwargs["sync"]:
             setup_paths(self.serve_root)

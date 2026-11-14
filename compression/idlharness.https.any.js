@@ -1,5 +1,6 @@
 // META: script=/resources/WebIDLParser.js
 // META: script=/resources/idlharness.js
+// META: global=window,dedicatedworker
 
 'use strict';
 
@@ -7,7 +8,7 @@
 
 idl_test(
   ['compression'],
-  [],
+  ['streams'],
   idl_array => {
     idl_array.add_objects({
       CompressionStream: ['new CompressionStream("deflate")'],

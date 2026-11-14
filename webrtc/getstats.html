@@ -12,7 +12,7 @@ This test uses data only, and thus does not require fake media devices.
   <div id="log"></div>
   <h2>Retrieved stats info</h2>
   <pre>
-  <input type="button" onclick="showStats()" value="Show stats"></input>
+  <input type="button" onclick="showStats()" value="Show stats">
   <div id="stats">
   </div>
   </pre>
@@ -27,16 +27,11 @@ This test uses data only, and thus does not require fake media devices.
   var gSecondConnection = null;
 
   var onIceCandidateToFirst = test.step_func(function(event) {
-    // If event.candidate is null = no more candidates.
-    if (event.candidate) {
-      gSecondConnection.addIceCandidate(event.candidate);
-    }
+    gSecondConnection.addIceCandidate(event.candidate);
   });
 
   var onIceCandidateToSecond = test.step_func(function(event) {
-    if (event.candidate) {
-      gFirstConnection.addIceCandidate(event.candidate);
-    }
+    gFirstConnection.addIceCandidate(event.candidate);
   });
 
   var getStatsRecordByType = function(stats, type) {
